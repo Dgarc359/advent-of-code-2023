@@ -9,25 +9,35 @@ fn main() {
 fn get_sum(input: &str) -> u32 {
     let sum = 0_u32;
 
-    let symbol_coords = find_symbols(input);
+    //let symbol_coords = find_symbols(input);
 
-    let valid_nums = find_valid_nums(input, symbol_coords);
+    let valid_nums = find_valid_nums(input);
     sum
 }
 
-fn find_valid_nums(input: &str, symbol_coords: Vec<[usize; 2]>) -> Vec<usize> {
-    let re = &Regex::new(r"[0-9]").unwrap();
+fn find_valid_nums(input: &str) -> Vec<usize> {
+    let re = Regex::new(r"[0-9]").unwrap();
     let mut valid_nums = vec![];
 
     let rows = input.split(0xA as char);
 
     let mut num_str = String::from("");
 
-    let mut num_has_adjacent_symbol = false;
-
     for (y, row) in rows.enumerate() {
         for (x, c) in row.chars().enumerate() {
+            if has_adjacent_symbols(input, x, y, row.len()) {
+                num_str = String::from("");
+                continue;
+            }
+
             if re.is_match(String::from(c).as_str()) {
+                num_str.push(c);
+                dbg!(&num_str);
+            } else {
+                let num = num_str.as_str().parse::<usize>().unwrap();
+                valid_nums.push(num);
+
+                num_str = String::from("");
             }
         }
     }
@@ -35,25 +45,49 @@ fn find_valid_nums(input: &str, symbol_coords: Vec<[usize; 2]>) -> Vec<usize> {
     valid_nums
 }
 
-fn check_cardinals_for_symbols(symbol_coords: Vec<[usize; 2]>, x: usize, y: usize) {
-
+fn has_adjacent_symbols(input: &str, x: usize, y: usize, padding: usize) -> bool {
+    cardinals_have_symbols(input, x, y, padding) && diagonals_have_symbols(input, x, y, padding)
 }
 
-fn find_symbols(input: &str) -> Vec<[usize; 2]> {
+fn cardinals_have_symbols(input: &str, x: usize, y: usize, padding: usize) -> bool {
     let re = &Regex::new(r"[$+#*]").unwrap();
-    let mut coords = vec![];
+    let north = padding.saturating_mul(y.saturating_sub(1)) + x;
+    let south = x + padding.saturating_mul(y.saturating_add(1));
+    let east = x.saturating_sub(1) + padding.saturating_mul(y);
+    let west = x.saturating_add(1) + padding.saturating_mul(y);
 
-    let rows = input.split(0xA as char);
+    let n_s = input.as_bytes()[north] as char;
+    let s_s = input.as_bytes()[south] as char;
+    let e_s = input.as_bytes()[east] as char;
+    let w_s = input.as_bytes()[west] as char;
 
-    for (y, row) in rows.enumerate() {
-        for (x, c) in row.chars().enumerate() {
-            if re.is_match(String::from(c).as_str()) {
-                coords.push([x, y]);
-            }
-        }
-    }
+    dbg!(north, south, east, west, n_s, s_s, e_s, w_s);
 
-    coords
+    re.is_match(n_s.to_string().as_str())
+        || re.is_match(s_s.to_string().as_str())
+        || re.is_match(e_s.to_string().as_str())
+        || re.is_match(w_s.to_string().as_str())
+}
+
+fn diagonals_have_symbols(input: &str, x: usize, y: usize, padding: usize) -> bool {
+let re = &Regex::new(r"[$+#*]").unwrap();
+    let north_east = padding.saturating_mul(y.saturating_sub(1)).saturating_add(x).saturating_add(1);
+    let north_west = padding.saturating_mul(y.saturating_sub(1)).saturating_add(x).saturating_sub(1);
+    let south_east = padding.saturating_mul(y.saturating_add(1)).saturating_add(x).saturating_add(1);
+    let south_west = padding.saturating_mul(y.saturating_add(1)).saturating_add(x).saturating_sub(1);
+
+    let ne_s = input.as_bytes()[north_east] as char;
+    let nw_s = input.as_bytes()[north_west] as char;
+    let se_s = input.as_bytes()[south_east] as char;
+    let sw_s = input.as_bytes()[south_west] as char;
+
+    dbg!(ne_s, nw_s, se_s, sw_s);
+
+    re.is_match(ne_s.to_string().as_str())
+        || re.is_match(se_s.to_string().as_str())
+        || re.is_match(nw_s.to_string().as_str())
+        || re.is_match(sw_s.to_string().as_str())
+
 }
 
 #[cfg(test)]
